@@ -134,6 +134,32 @@ void main() {
     expect(text(3), '500m');
   });
 
+  testWidgets('time ↔ frequency', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await Store.instance.load();
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final fields = find.byType(TextField);
+    String text(int i) => tester.widget<TextField>(fields.at(i)).controller!.text;
+
+    final calc = calcById('freq');
+    await tester.pumpWidget(MaterialApp(
+        theme: buildTheme(Brightness.light), home: calc.screen!(calc)));
+    await tester.enterText(fields.at(0), '20m');
+    await tester.pump();
+    expect(text(1), '50'); // Hz
+    expect(text(3), '3000'); // per minute
+
+    await tester.enterText(fields.at(1), '433M');
+    await tester.pump();
+    expect(text(0), '2.309n');
+    expect(text(4), '692.4m'); // λ in air
+    await tester.tap(find.text('Coax 0.66'));
+    await tester.pump();
+    expect(text(4), '457m');
+  });
+
   testWidgets('every calculator opens without errors', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await Store.instance.load();

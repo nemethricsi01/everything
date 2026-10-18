@@ -785,31 +785,50 @@ final List<CalcDef> calculators = [
   ),
   CalcDef(
     id: 'freq',
-    title: 'Frequency, period & wavelength',
+    title: 'Time ↔ frequency',
     category: Cat.timing,
     icon: Icons.ssid_chart,
     formulas: const [
-      'T = 1 / f',
+      'f = 1 / T     T = 1 / f',
       'ω = 2π · f',
-      'λ = (c · VF) / f,   c ≈ 3×10⁸ m/s',
+      'per minute = f × 60',
+      'λ = c · VF / f,   c ≈ 3×10⁸ m/s',
     ],
-    description: 'Velocity factor VF: 1 in air, ≈0.66 in typical coax, ≈0.5 on FR4 PCB.',
-    tags: const ['frequency', 'period', 'wavelength', 'antenna', 'omega', 'rf'],
-    inputs: const [
-      InputField('f', 'Frequency f', 'Hz', hint: '433M', optional: true),
-      InputField('t', 'Period T, to find f', 's', optional: true),
-      InputField('vf', 'Velocity factor', '', hint: '1', optional: true, prefix: false),
-    ],
-    outputs: [
-      OutputField('Period T', 's', needs: const ['f'], compute: (v) => 1 / v['f']!),
-      OutputField('Frequency from T', 'Hz', needs: const ['t'], compute: (v) => 1 / v['t']!),
-      OutputField('Angular frequency ω', 'rad/s',
-          needs: const ['f'], compute: (v) => 2 * pi * v['f']!),
-      OutputField('Wavelength λ', 'm',
-          needs: const ['f'], compute: (v) => 299792458 * (v['vf'] ?? 1) / v['f']!),
-      OutputField('Quarter wave λ/4', 'm',
-          needs: const ['f'], compute: (v) => 299792458 * (v['vf'] ?? 1) / v['f']! / 4),
-    ],
+    description:
+        'Period, frequency, ω, RPM/BPM and wavelength. The switch sets the velocity '
+        'factor VF for wavelength only: air 1, typical coax 0.66, FR4 PCB ≈ 0.5.',
+    tags: const ['time', 'frequency', 'period', 'hz', 'ms', 'wavelength', 'antenna',
+        'omega', 'rf', 'rpm', 'bpm', 'clock', 'convert'],
+    screen: (calc) => LinkedConverterScreen(
+      key: ValueKey(calc.id),
+      calc: calc,
+      config: LinkedConfig(
+        modes: const ['Air', 'Coax 0.66', 'PCB 0.5'],
+        fields: [
+          LinkedField('t', 'Period T', 's',
+              hint: '20m', toBase: (v, _) => 1 / v, fromBase: (f, _) => 1 / f),
+          LinkedField('f', 'Frequency f', 'Hz',
+              hint: '50', toBase: (v, _) => v, fromBase: (f, _) => f),
+          LinkedField('w', 'Angular frequency ω', 'rad/s',
+              toBase: (v, _) => v / (2 * pi), fromBase: (f, _) => f * 2 * pi),
+          LinkedField('min', 'Per minute (RPM, BPM)', '/min',
+              prefix: false, toBase: (v, _) => v / 60, fromBase: (f, _) => f * 60),
+          LinkedField('l', 'Wavelength λ', 'm',
+              toBase: (v, m) => _c0 * _vf(m) / v, fromBase: (f, m) => _c0 * _vf(m) / f),
+          LinkedField('l4', 'Quarter wave λ/4', 'm',
+              toBase: (v, m) => _c0 * _vf(m) / (4 * v),
+              fromBase: (f, m) => _c0 * _vf(m) / (4 * f)),
+        ],
+        factsTitle: 'Worth remembering',
+        facts: (_) => const [
+          ('1 kHz', '1 ms'),
+          ('1 MHz', '1 µs'),
+          ('50 Hz mains', '20 ms'),
+          ('60 Hz mains', '16.67 ms'),
+          ('60 BPM', '1 Hz'),
+        ],
+      ),
+    ),
   ),
   CalcDef(
     id: 'rms',
@@ -938,6 +957,13 @@ final List<CalcDef> calculators = [
 ];
 
 const _dbuRef = 0.7745966692414834; // √0.6 V
+const _c0 = 299792458.0; // speed of light, m/s
+
+double _vf(String medium) => switch (medium) {
+      'Coax 0.66' => 0.66,
+      'PCB 0.5' => 0.5,
+      _ => 1.0,
+    };
 
 double _rmsFactor(String wave) => switch (wave) {
       'Sine' => 1 / sqrt2,
