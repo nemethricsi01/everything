@@ -8,6 +8,7 @@ import 'core/si.dart';
 import 'screens/base_converter_screen.dart';
 import 'screens/color_code_screen.dart';
 import 'screens/linked_screen.dart';
+import 'screens/motor_screen.dart';
 import 'screens/ohm_screen.dart';
 import 'screens/series_parallel_screen.dart';
 
@@ -18,8 +19,9 @@ class Cat {
   static const timing = 'Timing & signals';
   static const power = 'Power';
   static const digital = 'Digital';
+  static const motors = 'Motors & drivers';
 
-  static const all = [basics, parts, ac, timing, power, digital];
+  static const all = [basics, parts, ac, timing, power, motors, digital];
 }
 
 double _db20(double ratio) => 20 * log(ratio) / ln10;
@@ -934,6 +936,28 @@ final List<CalcDef> calculators = [
               : v['cap']! / v['i']! * (v['eff'] ?? 80) / 100,
           format: (h, _) => _duration(h)),
     ],
+  ),
+
+  // ------------------------------------------------------- Motors & drivers
+  CalcDef(
+    id: 'motor',
+    title: 'Motor constants (DRV8234)',
+    category: Cat.motors,
+    icon: Icons.settings,
+    formulas: const [
+      'RPM = Hz × 60      Kv = RPM / V',
+      'ω = 2π · Hz        Ke = V / ω',
+      'Ke(IR) = (V − I·R) / ω',
+      'INV_R = round(INV_R_SCALE / R)',
+      'KMC = round(Ke / NR × KMC_SCALE)',
+      'WSET_VSET = round(RPM·NR·2π/60 / W_SCALE)',
+    ],
+    description:
+        'Run the motor with no load at a realistic voltage. Measure the shaft speed (Hz) '
+        'and the bench supply current, then fill them in.',
+    tags: const ['motor', 'kv', 'ke', 'back emf', 'rpm', 'drv8234', 'ripple', 'register',
+        'inv_r', 'kmc', 'wset', 'dc motor'],
+    screen: (calc) => MotorScreen(calc: calc),
   ),
 
   // ---------------------------------------------------------------- Digital

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:everything/calculators.dart';
 import 'package:everything/core/eseries.dart';
 import 'package:everything/core/si.dart';
@@ -158,6 +160,37 @@ void main() {
     await tester.tap(find.text('Coax 0.66'));
     await tester.pump();
     expect(text(4), '457m');
+  });
+
+  testWidgets('motor constants match the original HTML calculator', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'inputs.motor': jsonEncode({'r': '11.5', 'v': '5.15', 'i': '18m', 'hz': '57'}),
+    });
+    await Store.instance.load();
+    tester.view.physicalSize = const Size(600, 5000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final calc = calcById('motor');
+    await tester.pumpWidget(MaterialApp(
+        theme: buildTheme(Brightness.light), home: calc.screen!(calc)));
+    for (final s in [
+      '3420.00 rpm',
+      '664.078 rpm/V',
+      '358.142 rad/s',
+      '0.014380 V·s/rad',
+      '0.013802 V·s/rad',
+      '89', // INV_R with scale 1024
+      '24×2¹²  (98304)',
+      '236', // KMC
+      '226', // KMC IR-compensated
+      '1507.96 rad/s',
+      '16  (max 4080 rad/s)',
+      '94', // WSET_VSET
+      'value 89 (0x59)',
+    ]) {
+      expect(find.text(s), findsWidgets, reason: s);
+    }
   });
 
   testWidgets('every calculator opens without errors', (tester) async {
